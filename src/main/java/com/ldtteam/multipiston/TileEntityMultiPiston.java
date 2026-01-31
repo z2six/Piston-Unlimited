@@ -10,6 +10,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.entity.Entity;
@@ -183,12 +184,18 @@ public class TileEntityMultiPiston extends BlockEntity implements IRotatableBloc
         if (progress < range)
         {
             final BlockState blockToMove = level.getBlockState(worldPosition.relative(currentDirection, 1));
-            if (blockToMove.getBlock() == Blocks.AIR
-                  || blockToMove.getPistonPushReaction() == PushReaction.IGNORE
+            if (blockToMove.getBlock() == Blocks.AIR || blockToMove.getBlock() == Blocks.BEDROCK)
+            {
+                progress++;
+                return;
+            }
+
+            final boolean isForceAllowed = isForceAllowed(blockToMove);
+            if (!isForceAllowed
+                  && (blockToMove.getPistonPushReaction() == PushReaction.IGNORE
                   || blockToMove.getPistonPushReaction() == PushReaction.DESTROY
                   || blockToMove.getPistonPushReaction() == PushReaction.BLOCK
-                  || (blockToMove.getBlock() instanceof EntityBlock && !BuiltInRegistries.BLOCK.getKey(blockToMove.getBlock()).getNamespace().equals("domum_ornamentum"))
-                  || blockToMove.getBlock() == Blocks.BEDROCK)
+                  || isDisallowedEntityBlock(blockToMove)))
             {
                 progress++;
                 return;
@@ -253,6 +260,33 @@ public class TileEntityMultiPiston extends BlockEntity implements IRotatableBloc
         {
             entity.teleportTo(posTo.getX() + 0.5D, posTo.getY() + 0.5D, posTo.getZ() + 0.5D);
         }
+    }
+
+    private boolean isDisallowedEntityBlock(final BlockState state)
+    {
+        if (!(state.getBlock() instanceof EntityBlock))
+        {
+            return false;
+        }
+
+        final ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+        if (blockId == null)
+        {
+            return true;
+        }
+
+        if ("domum_ornamentum".equals(blockId.getNamespace()))
+        {
+            return false;
+        }
+
+        return !MultiPistonConfig.isAllowedBlock(blockId);
+    }
+
+    private boolean isForceAllowed(final BlockState state)
+    {
+        final ResourceLocation blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock());
+        return blockId != null && MultiPistonConfig.isAllowedBlock(blockId);
     }
 
     @Override

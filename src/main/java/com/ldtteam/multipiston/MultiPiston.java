@@ -42,10 +42,14 @@ public class MultiPiston
         final IEventBus modBus = modContainer.getEventBus();
         final IEventBus forgeBus = NeoForge.EVENT_BUS;
         
+        MultiPistonConfig.register(modContainer, modBus);
+
         BLOCKS.register(modBus);
         ITEMS.register(modBus);
         TILE_ENTITIES.register(modBus);
         TAB_REG.register(modBus);
+
+        forgeBus.addListener(MultiPistonCommands::onRegisterCommands);
 
         modBus.register(this.getClass());
     }
